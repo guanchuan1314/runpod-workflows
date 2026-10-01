@@ -1,0 +1,473 @@
+{
+  "id": "54bb395d-3e60-4c94-b525-85523901575b",
+  "revision": 0,
+  "last_node_id": 500,
+  "last_link_id": 800,
+  "nodes": [
+    {
+      "id": 13,
+      "type": "ResolutionSelector",
+      "pos": [
+        140,
+        680
+      ],
+      "size": [
+        300,
+        190
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "showAdvanced": true,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "links": [
+            701
+          ]
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": [
+            702
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ResolutionSelector"
+      },
+      "widgets_values": [
+        "1:1 (Square)",
+        1,
+        8
+      ]
+    },
+    {
+      "id": 451,
+      "type": "UnetLoaderGGUF",
+      "pos": [
+        140,
+        100
+      ],
+      "size": [
+        380,
+        90
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            703
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UnetLoaderGGUF"
+      },
+      "widgets_values": [
+        "qwen-image-2.1-UC-Q4_K_M.gguf"
+      ],
+      "title": "UC Q4 model (installed)"
+    },
+    {
+      "id": 453,
+      "type": "CLIPLoader",
+      "pos": [
+        140,
+        240
+      ],
+      "size": [
+        380,
+        120
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            704
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "qwen3vl_8b_int8_convrot.safetensors",
+        "qwen_image",
+        "default"
+      ]
+    },
+    {
+      "id": 454,
+      "type": "VAELoader",
+      "pos": [
+        140,
+        420
+      ],
+      "size": [
+        380,
+        70
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            705
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "qwen_image_2.1_vae_bf16.safetensors"
+      ]
+    },
+    {
+      "id": 456,
+      "type": "EmptyLatentImage",
+      "pos": [
+        480,
+        680
+      ],
+      "size": [
+        300,
+        120
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 701
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 702
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            706
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        1024,
+        1024,
+        1
+      ]
+    },
+    {
+      "id": 452,
+      "type": "TextEncodeQwenImage21",
+      "pos": [
+        560,
+        100
+      ],
+      "size": [
+        480,
+        520
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 704
+        },
+        {
+          "name": "images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            707
+          ]
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            708
+          ]
+        },
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextEncodeQwenImage21"
+      },
+      "widgets_values": [
+        "An adult woman aged 35 wearing a charcoal cotton shirt, seated beside a window in an apartment. Head-and-shoulders portrait, three-quarter view, relaxed expression, looking toward the camera. Soft natural window light and a softly blurred background.\n\nPhotorealistic, unretouched camera photograph. Preserve believable anatomy, age-appropriate facial features and natural asymmetry. Where skin is visible and close enough to resolve, show subtle pores, fine vellus hair, faint expression lines, slight under-eye texture, small imperfections and gentle variation in skin tone; keep these details understated rather than exaggerated. Realistic hair strands, fabric texture and material surfaces. Physically plausible light and shadow, natural exposure, neutral white balance and restrained contrast. Focus appropriate to the composition, realistic depth of field and fine detail without artificial sharpening. Preserve the subject, clothing, scene and lighting described above. Natural skin finish, without beauty-filter smoothing, airbrushing, waxy or plastic skin, excessive gloss, exaggerated pores, crunchy texture, HDR halos or a CGI appearance.",
+        "",
+        1024
+      ],
+      "title": "Paragraph 1: edit scene | Paragraph 2: keep realism"
+    },
+    {
+      "id": 458,
+      "type": "KSampler",
+      "pos": [
+        1080,
+        100
+      ],
+      "size": [
+        300,
+        380
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 703
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 707
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 708
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 706
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            709
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        42,
+        "randomize",
+        25,
+        1.0,
+        "euler",
+        "simple",
+        1.0
+      ]
+    },
+    {
+      "id": 457,
+      "type": "VAEDecode",
+      "pos": [
+        1420,
+        100
+      ],
+      "size": [
+        230,
+        60
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 709
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 705
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            710
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 461,
+      "type": "SaveImage",
+      "pos": [
+        1690,
+        100
+      ],
+      "size": [
+        500,
+        300
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 710
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "Qwen-UC/Natural-portrait"
+      ]
+    }
+  ],
+  "links": [
+    [
+      701,
+      13,
+      0,
+      456,
+      0,
+      "INT"
+    ],
+    [
+      702,
+      13,
+      1,
+      456,
+      1,
+      "INT"
+    ],
+    [
+      703,
+      451,
+      0,
+      458,
+      0,
+      "MODEL"
+    ],
+    [
+      704,
+      453,
+      0,
+      452,
+      0,
+      "CLIP"
+    ],
+    [
+      705,
+      454,
+      0,
+      457,
+      1,
+      "VAE"
+    ],
+    [
+      706,
+      456,
+      0,
+      458,
+      3,
+      "LATENT"
+    ],
+    [
+      707,
+      452,
+      0,
+      458,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      708,
+      452,
+      1,
+      458,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      709,
+      458,
+      0,
+      457,
+      0,
+      "LATENT"
+    ],
+    [
+      710,
+      457,
+      0,
+      461,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "frontendVersion": "1.53.7"
+  },
+  "version": 0.4
+}
