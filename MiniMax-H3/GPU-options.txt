@@ -1,0 +1,59 @@
+MiniMax H3 Heretic - GPU and precision options
+
+CURRENT DEPLOYMENT
+Video generator: minimax_h3_fl2va_pruned_int8_convrot.safetensors (~20.97GB).
+Heretic conditioning encoder: INT8 ConvRot (~26.36GB).
+Video VAE: FP16 (~5.21GB). Audio VAE: FP32 (~0.61GB).
+Optional 8-step Turbo LoRA: BF16 (~1.96GB).
+Total model download: ~55.1GB. This folder currently builds this INT8 setup.
+
+GPU MEMORY TIERS FOR THE CURRENT SETUP
+48GB: Requires offloading; possible for constrained clips, but not recommended
+      as the starting serverless tier. Runtime and system RAM need testing.
+80GB PRO: Reasonable candidate for short clips; benchmark peak VRAM and speed.
+96GB PRO: Recommended starting tier, with more headroom for runtime memory.
+141GB: Additional headroom for longer or higher-resolution clips.
+
+HIGHER-PRECISION ALTERNATIVES
+1. INT8 generator + INT8 Heretic encoder:
+   Main model files ~47.3GB; all selected files ~55.1GB.
+   Suggested tier: 96GB. 80GB is an alternative to benchmark.
+2. BF16 PRUNED generator + INT8 Heretic encoder:
+   Generator ~40.2GB; main model files ~66.6GB; all files ~74.3GB.
+   Suggested tier: 96GB for short clips; 141GB for more headroom.
+3. BF16 PRUNED generator + BF16 Heretic encoder:
+   Encoder ~51.5GB; main model files ~91.7GB; all files ~99.5GB.
+   Suggested tier: 141GB; 180GB for additional runtime headroom.
+
+These are planning estimates, not measured RunPod peak-memory requirements.
+File sizes above use decimal GB; they are not GPU-memory measurements.
+ComfyUI can unload/offload models between stages, so file totals do not directly
+equal simultaneous VRAM use. Offloading also depends on available system RAM.
+Resolution, frame count, batch size, attention backend and VAE decoding affect
+runtime memory and speed. No tier guarantees every video size will fit.
+
+BF16 is 16-bit precision; INT8 ConvRot is 8-bit quantization. BF16 reduces
+quantization error but does not guarantee visibly better video. GPU PRO tiers
+describe hardware performance, not model precision. Compare cost per clip.
+The pruned BF16 generator is distinct from the larger, unpruned ~66.3GB model;
+the estimates above specifically use the pruned generator.
+
+RUNPOD DEPLOYMENT
+Queue endpoint; one GPU per worker; active workers 0; max workers 1.
+Idle timeout 5 seconds; execution timeout 1800 seconds as a starting setting.
+Current INT8 setup: container disk 100GB; FlashBoot enabled if available.
+The previously checked GitHub-built image limit is 80GB, including runtime
+dependencies. The ~74GB mixed setup may exceed it; the ~99GB BF16 setup does.
+Those alternatives need a different build/storage strategy, such as models
+on persistent storage. Persistent storage can cost money while workers are off.
+Large downloads may also exceed the GitHub Docker-build time limit.
+
+Switching GPU alone does not change precision. A BF16 switch requires changing
+the model manifest/checksums and workflow filenames, then rebuilding the worker.
+Current INT8 workflows were tested locally; this cloud deployment and the BF16
+alternatives have not been tested.
+
+Sources:
+https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/diffusion_models
+https://huggingface.co/ethanfel/Qwen3-VL-32B-Ultra-Heretic-H3-ComfyUI-INT8-ConvRot
+https://docs.runpod.io/serverless/workers/github-integration

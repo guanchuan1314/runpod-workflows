@@ -11,7 +11,7 @@ def main():
     parser.add_argument('--prompt', required=True)
     args = parser.parse_args()
     key = os.environ['RUNPOD_API_KEY']
-    endpoint = os.environ['RUNPOD_ENDPOINT_ID']
+    endpoint = os.environ.get('RUNPOD_ENDPOINT_ID', 'ojli7psn8voa05')
     if not endpoint.isalnum():
         raise ValueError('Invalid endpoint ID')
     root = pathlib.Path(__file__).resolve().parent
