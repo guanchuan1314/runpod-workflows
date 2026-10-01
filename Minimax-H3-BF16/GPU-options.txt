@@ -1,0 +1,1 @@
+BF16 generator + BF16 Heretic encoder. See memory.txt and README.txt.

@@ -1,0 +1,10 @@
+Qwen-2.1-Q8
+Recommended GPU memory: 48GB
+24GB may need offloading; 48GB recommended.
+Approximate model download: 17.6GB
+Suggested container disk: 50GB
+
+Planning estimates, not measured cloud minimums. GPU VRAM is different from
+system RAM and disk storage. Qwen: 1024 square, batch 1. MiniMax: short clips.
+Resolution, frame count and batch size affect memory. Offloading requires
+host RAM and can reduce speed. One GPU per worker; active 0; max workers 1.

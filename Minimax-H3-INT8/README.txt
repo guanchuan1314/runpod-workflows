@@ -1,6 +1,6 @@
 MiniMax H3 Heretic - RunPod Serverless preparation
 
-Dockerfile Path: MiniMax-H3/Dockerfile
+Dockerfile Path: Minimax-H3-INT8/Dockerfile
 Build context: Runpod-Serverless repository root.
 Queue endpoint. Active workers 0, max workers 1, GPUs per worker 1.
 Start with 96GB GPU tier; 80GB is a possible alternative to benchmark.
@@ -14,7 +14,7 @@ is a planning estimate, not cloud-tested. Default API examples use short,
 low-resolution clips already tested locally, with standard 20-step sampling.
 
 models.json is a BUILD manifest, required by download_models.py; keep it here.
-Inference workflow JSON files are separate under client-examples/MiniMax-H3.
+Inference workflow JSON files are separate under client-examples/Minimax-H3-INT8.
 Full UI workflows retain the original layout and optional Turbo branch.
 The API examples are minimal locally tested graphs, with Turbo disabled.
 For image-to-video, send input.images containing the reference image as Base64

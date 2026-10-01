@@ -54,6 +54,6 @@ Current INT8 workflows were tested locally; this cloud deployment and the BF16
 alternatives have not been tested.
 
 Sources:
-https://huggingface.co/Comfy-Org/MiniMax-H3/tree/main/diffusion_models
+https://huggingface.co/Comfy-Org/Minimax-H3-INT8/tree/main/diffusion_models
 https://huggingface.co/ethanfel/Qwen3-VL-32B-Ultra-Heretic-H3-ComfyUI-INT8-ConvRot
 https://docs.runpod.io/serverless/workers/github-integration
