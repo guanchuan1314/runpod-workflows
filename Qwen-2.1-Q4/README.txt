@@ -4,7 +4,7 @@ Prepared locally. Not deployed or cloud-tested. Docker is unavailable on this PC
 Create accounts at https://console.runpod.io and https://github.com/signup.
 Push the Runpod-Serverless folder as the repository root, preserving subfolders.
 RunPod Serverless > Import Git Repository > choose repository.
-Dockerfile Path: RunPod-Qwen-Unrestricted/Dockerfile
+Dockerfile Path: Qwen-2.1-Q4/Dockerfile
 Build context: repository root. Base image: verified 5.10.0-base, pinned by digest.
 RunPod builds the image; Docker Hub and local Docker are unnecessary.
 

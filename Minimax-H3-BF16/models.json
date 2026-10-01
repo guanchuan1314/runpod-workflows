@@ -1,0 +1,37 @@
+[
+  {
+    "repo": "ethanfel/Qwen3-VL-32B-Ultra-Heretic-H3-ComfyUI-INT8-ConvRot",
+    "file": "qwen3vl_32b_h3_ultra_uncensored_heretic_bf16.safetensors",
+    "folder": "text_encoders",
+    "size": 51506295440,
+    "sha256": "bbcd92a732e911cfafd86960e0e26aacc6efe949e02f16a9641f201c62984860"
+  },
+  {
+    "repo": "Comfy-Org/MiniMax-H3",
+    "file": "vae/minimax_h3_audio_vae_fp32.safetensors",
+    "folder": "vae",
+    "size": 605254808,
+    "sha256": "8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48"
+  },
+  {
+    "repo": "Comfy-Org/MiniMax-H3",
+    "file": "vae/minimax_h3_video_vae_fp16.safetensors",
+    "folder": "vae",
+    "size": 5207808496,
+    "sha256": "7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522"
+  },
+  {
+    "repo": "Comfy-Org/MiniMax-H3",
+    "file": "diffusion_models/minimax_h3_fl2va_pruned_bf16.safetensors",
+    "folder": "diffusion_models",
+    "size": 40225724176,
+    "sha256": "a32572fb90b5508b201ec7c2eddcc184b13ddfd3c6f6d2cf06a0b46535d541b4"
+  },
+  {
+    "repo": "lightx2v/Minimax-h3-Turbo",
+    "file": "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors",
+    "folder": "loras",
+    "size": 1956193000,
+    "sha256": "2339acdf19bfe123f46b971ea35d367a84adb85de43627e1eceafa5a5b2b111e"
+  }
+]
