@@ -2,11 +2,12 @@ Minimax-H3-INT8
 Recommended GPU memory: 96GB PRO
 80GB candidate for short clips; 96GB recommended.
 Approximate model download: 55.1GB
-Suggested worker container disk: 30GB starting allocation (runtime/temp files).
+Suggested worker container disk: 100GB (models, software and temporary outputs).
 
 Planning estimates, not measured cloud minimums. GPU VRAM is different from
 system RAM and disk storage. Qwen: 1024 square, batch 1. MiniMax: short clips.
 Resolution, frame count and batch size affect memory. Offloading requires
 host RAM and can reduce speed. One GPU per worker; active 0; max workers 1.
 
-Models live on network storage, not container disk. See NETWORK-VOLUME-SETUP.txt.
+Models are included in the container image. Suggested builder free disk: 200GB.
+See CONTAINER-REGISTRY-SETUP.txt.

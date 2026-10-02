@@ -12,6 +12,5 @@ GPU PRO tiers affect throughput, not model precision. Benchmark cost per image.
 Do not select MLX files for this NVIDIA ComfyUI deployment.
 No cloud build or Q8 generation tested yet. No new model downloaded to this PC.
 
-DEPLOYMENT: model files now live on a network volume. No model-baked image.
-See README.txt and NETWORK-VOLUME-SETUP.txt. The BF16 model-size image
-blocker no longer applies because weights are outside the container.
+DEPLOYMENT: Models are included in the registry container image.
+No network volume required. See README.txt and CONTAINER-REGISTRY-SETUP.txt.

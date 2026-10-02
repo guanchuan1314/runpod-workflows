@@ -25,8 +25,8 @@ Folders:
   client-examples/    Workflow/request examples, kept outside worker folders.
 
 Each worker folder has Dockerfile, download_models.py, memory.txt and README.
-MiniMax also has models.json: this is a required BUILD manifest, not an
-inference workflow. Separate volume installer checks file hashes. Workflows are not baked
+Each variant also has models.json: this is a required BUILD manifest, not an
+inference workflow. The shared build installer checks file hashes. Workflows are not baked
 into the worker; the backend sends the complete API graph with each request.
 Dockerfile COPY paths expect the repository root as Docker build context.
 Example Dockerfile Path: Qwen-2.1-Q8/Dockerfile.
@@ -74,16 +74,15 @@ timeouts: Qwen 600 seconds, MiniMax 1800 seconds. These settings can be changed
 after benchmarking. Cold starts/model loading are billed, as is execution and
 the idle timeout; persistent storage may cost money even with workers stopped.
 
-MODEL STORAGE: All four variants now load models from network volumes only.
-No model downloads happen during image builds or worker startup. Populate the
-volume once using volume-tools/install_models.py and models.json manifests.
-Setup Pods mount it at /workspace; Serverless mounts it at /runpod-volume.
-Text encoders use models/clip, diffusion models models/unet, plus models/vae
-and models/loras. Worker startup checks installed model files before launch.
-Models are outside the image, so BF16 weights no longer hit the GitHub image
-size limit. BF16 cloud generation still needs validation. Volume storage costs
-continue when workers stop. Volume location restricts GPU availability.
-See NETWORK-VOLUME-SETUP.txt for setup, sizing and costs.
+MODEL STORAGE: All four variants include weights in their container images.
+Build using the repository root and each variant's Dockerfile, then push to
+Docker Hub. Deploy the image directly to RunPod. No network volume is required;
+worker startup performs no model downloads. Weight paths are under
+/comfyui/models/clip, unet, vae and loras. GPU memory estimates are unchanged.
+Large MiniMax images require a builder with enough disk/time outside the earlier
+RunPod GitHub build path that encountered size/time limits. Registry deployment
+does not guarantee fast image pulls or bypass platform image limits.
+See CONTAINER-REGISTRY-SETUP.txt. Images still need build and inference validation.
 
 4. WEBSITE ARCHITECTURE
 
@@ -104,7 +103,7 @@ Suggested server environment variables:
   RUNPOD_QWEN_Q4_ENDPOINT_ID=<configure after deployment>
   RUNPOD_QWEN_Q8_ENDPOINT_ID=<configure after deployment>
   RUNPOD_MINIMAX_INT8_ENDPOINT_ID=<configure after deployment>
-  RUNPOD_MINIMAX_BF16_ENDPOINT_ID=<configure after storage solution>
+  RUNPOD_MINIMAX_BF16_ENDPOINT_ID=<configure after image deployment>
   DATABASE_URL
   Object storage configuration appropriate to the chosen provider.
 
@@ -289,7 +288,7 @@ MVP: Qwen Q4 text-to-image, prompt editor, generate, queued/generating states,
 image preview/download, seed reuse, persistent history, friendly failures/cancel.
 Use the confirmed endpoint first. Add Q8 only after deployment verification.
 Add MiniMax INT8 T2V/I2V after cloud build and MP4 transport tests. Show a video
-player with audio and downloads. Keep BF16 unavailable until its volume is populated and a cloud test passes.
+player with audio and downloads. Keep BF16 unavailable until its registry image deploys and a cloud test passes.
 Avoid displaying Docker/node identifiers in the normal generation form.
 An admin page can show endpoint readiness, model variant and troubleshooting.
 

@@ -38,7 +38,5 @@ describe hardware performance, not model precision. Compare cost per clip.
 The pruned BF16 generator is distinct from the larger, unpruned ~66.3GB model;
 the estimates above specifically use the pruned generator.
 
-
-DEPLOYMENT: model files now live on a network volume. No model-baked image.
-See README.txt and NETWORK-VOLUME-SETUP.txt. The BF16 model-size image
-blocker no longer applies because weights are outside the container.
+DEPLOYMENT: Models are included in the registry container image.
+No network volume required. See README.txt and CONTAINER-REGISTRY-SETUP.txt.

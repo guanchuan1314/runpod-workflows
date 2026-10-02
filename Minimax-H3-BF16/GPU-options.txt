@@ -1,5 +1,4 @@
 BF16 generator + BF16 Heretic encoder. See memory.txt and README.txt.
 
-DEPLOYMENT: model files now live on a network volume. No model-baked image.
-See README.txt and NETWORK-VOLUME-SETUP.txt. The BF16 model-size image
-blocker no longer applies because weights are outside the container.
+DEPLOYMENT: Models are included in the registry container image.
+No network volume required. See README.txt and CONTAINER-REGISTRY-SETUP.txt.

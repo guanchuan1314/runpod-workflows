@@ -1,18 +1,28 @@
-Minimax-H3-INT8 - models on network volume only
+Minimax-H3-INT8 - models included in the registry container image
 Dockerfile Path: Minimax-H3-INT8/Dockerfile
-Build context: repository root. Include shared volume-tools in Git.
-No model downloads during Docker build or worker startup.
-Build image contains ComfyUI, custom nodes if required, handler and model checks.
-Before inference install models on the volume using NETWORK-VOLUME-SETUP.txt.
-Setup Pod command: python3 Minimax-H3-INT8/download_models.py --root /workspace
-Attach that SAME populated volume to the endpoint. Serverless mounts it at
-/runpod-volume. Missing/incomplete models fail startup with an actionable error.
-Model files use models/clip, models/unet, models/vae and models/loras.
-These paths are already configured by the base worker. Do not change API filenames.
-Queue endpoint; active workers 0; max workers 1; GPUs per worker 1.
-Idle timeout 5 seconds. FlashBoot enabled if available. Container disk 30GB
-as a starting allocation for runtime/temp outputs; models use separate storage.
-GPU recommendations: memory.txt. Client JSON: client-examples/Minimax-H3-INT8.
-Network-volume storage is charged even when workers are stopped.
-Selecting a volume restricts available workers to its data center.
-Cloud volume setup and generation remain untested. No cloud resources created.
+Build context: repository root. Include shared model-tools in Git.
+Build downloads and SHA-256 verifies all models from models.json.
+Installed paths: /comfyui/models/clip, unet, vae and loras.
+The inherited RunPod worker starts ComfyUI and the Queue API handler.
+No network volume is required. No model downloads at worker startup.
+Workflow JSON stays in client-examples/Minimax-H3-INT8; send input.workflow via API.
+
+Build and push:
+  docker build --platform linux/amd64 -f Minimax-H3-INT8/Dockerfile -t docker.io/<dockerhub-user>/minimax-h3-int8:<version> .
+  docker push docker.io/<dockerhub-user>/minimax-h3-int8:<version>
+Use an immutable version tag or digest when deploying the image to RunPod.
+Select Deploy from a Docker image and use the registry image address.
+For a private image, configure registry pull credentials in RunPod.
+Endpoint name: Minimax-H3-INT8. Queue; active workers 0; max workers 1; GPUs per worker 1.
+Idle timeout 5 seconds. FlashBoot enabled if available.
+Suggested container disk: 100GB, allowing software, weights and temporary media.
+GPU memory recommendations: memory.txt and GPU-options.txt when present.
+
+Model weights: 55.10GB. Suggested builder free disk: 200GB.
+The builder needs room for the base image, models, layers and image export.
+MiniMax needs a builder outside the previously failing RunPod GitHub build path.
+Earlier builds encountered image-size/time limits; registry deployment still
+requires a successful large-image build and pull. Cold starts may be longer.
+Model checksums were verified in the earlier volume download. New image builds
+and GPU inference for these registry images have not yet been tested.
+See CONTAINER-REGISTRY-SETUP.txt for deployment details.

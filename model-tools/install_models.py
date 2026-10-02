@@ -1,4 +1,4 @@
-"""Run once on a setup Pod with the network volume mounted. No GPU required."""
+"""Install checksum-verified models into an existing ComfyUI root during build."""
 import argparse
 import hashlib
 import json
@@ -13,7 +13,7 @@ def checksum(path):
 
 def install(manifest, root):
     if not root.is_dir():
-        raise RuntimeError('Volume mount must already exist; check --root')
+        raise RuntimeError('Installation root must already exist; check --root')
     for model in json.loads(manifest.read_text(encoding='utf-8-sig')):
         dest = root / 'models' / FOLDERS[model['folder']] / pathlib.PurePosixPath(model['file']).name
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -53,6 +53,6 @@ def install(manifest, root):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--manifest', type=pathlib.Path, required=True)
-    parser.add_argument('--root', type=pathlib.Path, required=True, help='/workspace on a setup Pod; /runpod-volume on Serverless')
+    parser.add_argument('--root', type=pathlib.Path, required=True, help='Existing ComfyUI root; use /comfyui during Docker build')
     args = parser.parse_args()
     install(args.manifest, args.root)
