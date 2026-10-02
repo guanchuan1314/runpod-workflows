@@ -1,0 +1,85 @@
+MODEL-ONLY NETWORK STORAGE - ALL FOUR WORKER VARIANTS
+
+1. CREATE STORAGE
+Create a Standard network volume in a data center offering your desired GPUs.
+Use one volume for shared models if all endpoints use that same data center.
+Planning capacities, including some free space:
+  Qwen Q4 and Q8 together: 30GB.
+  MiniMax INT8 only: 70GB.
+  MiniMax BF16 only: 120GB.
+  Both MiniMax variants: 160GB (shared VAEs/LoRA avoid duplication).
+  All four variants together: 180GB (~169.1GB of distinct files).
+At the checked Standard rate $0.07/GB/month, 180GB is approximately $12.60/month.
+Storage charges persist even with active workers 0. Check current console pricing.
+Volumes can be expanded but not shrunk. Capacity is provisioned storage, not VRAM.
+Created network volume: ComfyUI-Models, 180GB, US-CA-2, ID bewbisyqwr.
+READY: all 11 unique model files downloaded and SHA-256 verified (169.06GB).
+Qwen Q4, Qwen Q8, MiniMax INT8 and MiniMax BF16 manifests passed inventory and size checks.
+Approximately 10.94GB free at verification. Temporary CPU downloader Pod removed.
+Verification report: network-volume-ready.json. Model files remain on the volume.
+
+2. POPULATE ONCE
+Attach the volume when creating a temporary setup Pod in the same data center.
+It normally mounts at /workspace. Check the mount before downloading.
+The installer uses Python 3.11+ standard library; no GPU is needed for downloads.
+Transfer the repository files to the setup Pod using your normal Git/file method.
+Run from the repository root (where volume-tools and variant folders are present):
+  python3 Qwen-2.1-Q4/download_models.py --root /workspace
+  python3 Qwen-2.1-Q8/download_models.py --root /workspace
+  python3 Minimax-H3-INT8/download_models.py --root /workspace
+  python3 Minimax-H3-BF16/download_models.py --root /workspace
+Run only the variants you intend to use, sequentially. No concurrent installers.
+Files already present are SHA256 checked and reused. Downloads use .part files,
+resume with HTTP Range where supported, then verify hash before atomic rename.
+If interrupted, rerun. A checksum error requires inspection of the partial file.
+If the process is killed leaving .install-lock, confirm no installer is running
+before removing that EMPTY lock directory. Do not delete model files blindly.
+Installer/manifests may sit temporarily under /tmp; persistent volume needs only
+models/. Keep output media, application code and API credentials off this volume.
+When installation succeeds, terminate the temporary setup Pod to stop its compute
+charges. Preserve the network volume.
+
+3. FINAL VOLUME LAYOUT
+/workspace/models/ on the setup Pod becomes /runpod-volume/models/ in Serverless:
+  clip/   Text encoders for Qwen and MiniMax, by variant.
+  unet/   Diffusion models for Qwen and MiniMax, by variant.
+  vae/    Shared model VAEs.
+  loras/  MiniMax optional Turbo LoRA.
+The worker base image's extra_model_paths.yaml already maps these legacy names.
+Do not place them under models/text_encoders or models/diffusion_models on this
+volume unless you also change that configuration. API filenames stay unchanged.
+
+4. BUILD AND ATTACH
+Push the updated worker folders AND volume-tools. Docker build context is repo
+root. Dockerfile paths remain {variant}/Dockerfile. Model files are not in Git.
+Create/edit each Queue endpoint, attach the populated volume in Advanced settings,
+and deploy the matching container. Use active workers 0, max workers 1 initially.
+Leave start-command override empty: the image's wrapper checks model presence,
+then launches the inherited ComfyUI/RunPod handler. A failed presence check means
+the wrong volume is attached or its chosen variant hasn't been fully installed.
+GPU tiers: Qwen 48GB; MiniMax INT8 96GB; MiniMax BF16 141GB planning recommendations.
+Start with 30GB container disk for software/temp outputs and adjust after measuring.
+Container disk is separate from network-volume capacity and GPU VRAM.
+
+5. WEBSITE CONTRACT
+No request schema changes: backend sends input.workflow and optional input.images.
+Output media remains temporary in the worker and must be copied to app object
+storage by the backend. This volume is for model weights only.
+Endpoints sharing one volume read common models. Do not mutate models during
+active inference. Multiple data-center volumes require separately populated files;
+RunPod does not automatically synchronize their contents.
+
+6. VALIDATION STATUS
+Network volume bewbisyqwr in US-CA-2 is populated and verified for all four variants.
+All 11 files passed full SHA-256 checks on the mounted volume. All worker manifests
+passed inventory and exact byte-size checks. Temporary download Pod was terminated;
+no download compute remains running. Persistent network-storage billing continues.
+Models are stored under models/clip, models/unet, models/vae and models/loras,
+matching the worker-comfyui base image's /runpod-volume model search paths.
+Serverless deployment and GPU generation are separate checks: attach this volume,
+use US-CA-2, deploy the updated volume-aware images, and test each endpoint.
+Existing endpoints have not been changed by this storage preparation.
+
+References:
+https://docs.runpod.io/storage/network-volumes
+https://github.com/runpod-workers/worker-comfyui/blob/5.10.0/src/extra_model_paths.yaml

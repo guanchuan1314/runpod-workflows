@@ -1,35 +1,18 @@
-Qwen Image 2.1 UC Q4 - RunPod Serverless
-
-Prepared locally. Not deployed or cloud-tested. Docker is unavailable on this PC.
-Create accounts at https://console.runpod.io and https://github.com/signup.
-Push the Runpod-Serverless folder as the repository root, preserving subfolders.
-RunPod Serverless > Import Git Repository > choose repository.
+Qwen-2.1-Q4 - models on network volume only
 Dockerfile Path: Qwen-2.1-Q4/Dockerfile
-Build context: repository root. Base image: verified 5.10.0-base, pinned by digest.
-RunPod builds the image; Docker Hub and local Docker are unnecessary.
-
-Suggested settings:
-Flex workers; active/min workers 0; max workers 1; GPU count 1.
-H100 80GB if desired; container disk 50GB; idle timeout 5 seconds.
-Execution timeout 600 seconds; no network volume; FlashBoot enabled if available.
-Build downloads ~14.6GB of models once and verifies their SHA256 checksums.
-Large container means a longer initial cold start. Build must succeed before testing.
-ComfyUI is pinned to locally tested v0.38.0; GGUF extension follows upstream main.
-
-workflow-ui.json: full workflow for ComfyUI / https://comfy.getrunpod.io.
-workflow-api.json: executable graph. request.json: complete API request.
-Node 452 controls prompt; 458 controls seed/steps; 456 controls dimensions.
-Default: 1024 square, 25 steps, CFG 1, Euler/simple, Q4 unrestricted model.
-
-Set RUNPOD_API_KEY and RUNPOD_ENDPOINT_ID locally, then:
-python generate.py --prompt "A mountain lake at sunrise"
-Use the embedded ComfyUI Python executable if python is not on PATH.
-Client sends /run, polls /status, and saves images into generated/job-id/.
-Never commit API keys. Interrupted/timed-out client does not cancel the cloud job.
-Check/cancel that job in the RunPod console.
-
-GPU compute is zero after all workers stop with active workers 0.
-Startup, generation, idle timeout and allocated container disk are billed.
-Persistent network volumes would cost money even with no requests; none here.
-Review the model license before commercial use. Publisher's unrestricted claim
-does not guarantee every requested output.
+Build context: repository root. Include shared volume-tools in Git.
+No model downloads during Docker build or worker startup.
+Build image contains ComfyUI, custom nodes if required, handler and model checks.
+Before inference install models on the volume using NETWORK-VOLUME-SETUP.txt.
+Setup Pod command: python3 Qwen-2.1-Q4/download_models.py --root /workspace
+Attach that SAME populated volume to the endpoint. Serverless mounts it at
+/runpod-volume. Missing/incomplete models fail startup with an actionable error.
+Model files use models/clip, models/unet, models/vae and models/loras.
+These paths are already configured by the base worker. Do not change API filenames.
+Queue endpoint; active workers 0; max workers 1; GPUs per worker 1.
+Idle timeout 5 seconds. FlashBoot enabled if available. Container disk 30GB
+as a starting allocation for runtime/temp outputs; models use separate storage.
+GPU recommendations: memory.txt. Client JSON: client-examples/Qwen-2.1-Q4.
+Network-volume storage is charged even when workers are stopped.
+Selecting a volume restricts available workers to its data center.
+Cloud volume setup and generation remain untested. No cloud resources created.
