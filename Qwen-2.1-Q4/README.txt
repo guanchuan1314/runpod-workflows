@@ -23,6 +23,7 @@ The builder needs room for the base image, models, layers and image export.
 MiniMax needs a builder outside the previously failing RunPod GitHub build path.
 Earlier builds encountered image-size/time limits; registry deployment still
 requires a successful large-image build and pull. Cold starts may be longer.
-Model checksums were verified in the earlier volume download. New image builds
-and GPU inference for these registry images have not yet been tested.
+Registry image built, model checksums verified, uploaded and deployed on
+2026-10-02. Cloud PNG generation passed at 512x512 and 25 steps.
+See DEPLOYMENT-STATUS.txt for test scope and observed timings.
 See CONTAINER-REGISTRY-SETUP.txt for deployment details.

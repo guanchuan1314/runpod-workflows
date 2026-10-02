@@ -41,7 +41,10 @@ Use memory.txt/GPU-options.txt for GPU planning. No volume attachment and no
 volume-specific data-center restriction. Configure private registry credentials
 if needed. Leave the image entrypoint/start command unchanged.
 Smoke-test build and worker startup, then submit the corresponding client-example
-workflow and verify media output. New registry images are not yet built/tested.
+workflow and verify media output. All four registry images were built, uploaded,
+digest-verified and deployed on 2026-10-02. Qwen Q4/Q8 image generation and MiniMax
+INT8 text-to-video/image-to-video and BF16 text-to-video with audio passed cloud
+tests. See DEPLOYMENT-STATUS.txt for exact validation scope and timings.
 
 COST AND EXISTING STORAGE
 Zero active workers permits scaling to zero; startup, inference and idle timeout

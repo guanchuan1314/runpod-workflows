@@ -1,0 +1,36 @@
+DEPLOYMENT VERIFICATION - 2026-10-02
+
+Four private model-containing Docker Hub images uploaded and digest-verified.
+Four Queue endpoints created using the corresponding immutable image digest.
+All endpoints: minimum workers 0, maximum workers 1, idle timeout 5 seconds,
+private registry pull credentials attached, no network volume attached.
+All temporary image-build Pods removed.
+Image source commit: cc9b361; subsequent changes are documentation only.
+
+Cloud tests completed:
+Qwen-2.1-Q4: returned PNG, 512x512, 25 steps. Warm execution about 9 seconds.
+  First smoke job queue/startup delay about 213 seconds.
+Qwen-2.1-Q8: returned PNG, 512x512, 25 steps. Execution about 11.6 seconds.
+  First job queue/startup delay about 520 seconds.
+Minimax-H3-INT8: returned MP4, short 384x256 / 16-frame / 8-step T2V test.
+  H.264 video and AAC audio both decoded successfully. Duration 0.917 seconds.
+  Queue/startup delay about 807 seconds; execution about 19.7 seconds.
+Minimax-H3-INT8: I2V reference uploaded through input.images; returned MP4 with
+  decodable H.264 video and AAC audio. Same short dimensions/frames/steps.
+  Queue/startup delay about 670 seconds; execution about 19.4 seconds.
+
+Minimax-H3-BF16: returned MP4 from the same short T2V test on an H200 SXM.
+  H.264 video and AAC audio both decoded successfully. Duration 0.917 seconds.
+  Queue/startup delay about 1407 seconds; execution about 24 seconds.
+All four variants passed CPU startup during build and cloud GPU inference.
+BF16 I2V was not separately tested; INT8 I2V passed using the shared API contract.
+
+These measurements are individual observations, not performance guarantees.
+Short video tests verify the pipeline, not production video quality or maximum
+resolution/duration. Other GPUs and larger workflows may behave differently.
+No claim that every allowed GPU or workflow combination has been benchmarked.
+
+Runtime container disks: Q4 50GB, Q8 60GB, INT8 100GB, BF16 150GB.
+GPU VRAM is separate; consult each variant's memory.txt and GPU-options.txt.
+Existing 180GB model network storage is retained and billed but unused by these
+endpoints. It has not been deleted.

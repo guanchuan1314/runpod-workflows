@@ -14,7 +14,7 @@ endpoint ID. The browser must never receive the RunPod API key. No website
 framework has been selected; choose a suitable stack and explain the choice.
 Do not assume endpoint creation or account provisioning is part of the website.
 
-2. REPOSITORY AND DEPLOYMENT STATUS
+2. MODELS AND DEPLOYMENT STATUS
 
 
 Folders:
@@ -31,17 +31,17 @@ into the worker; the backend sends the complete API graph with each request.
 Dockerfile COPY paths expect the repository root as Docker build context.
 Example Dockerfile Path: Qwen-2.1-Q8/Dockerfile.
 
-The Qwen Q4 configuration passed a live endpoint test.
-Q4 generated a PNG successfully using /run and /status. A Q8 request to that
-same endpoint failed because only Q4 was installed. Do not map Q8 to this ID
-unless its container is actually updated and tested. Other endpoint IDs are
-not configured here. Q8 and MiniMax cloud generation remain untested.
-MiniMax INT8 T2V/I2V examples worked locally in ComfyUI, not yet on RunPod.
-BF16 variants have not been generation-tested locally or in the cloud.
+All four variants are deployed as separate private-image Queue endpoints.
+Qwen Q4/Q8 passed cloud PNG generation tests using /run and /status.
+MiniMax INT8 passed cloud T2V and I2V tests, including reference-image upload
+and returned MP4 video with decodable audio. BF16 passed cloud T2V with audio
+on an H200 SXM. BF16 I2V was not separately tested.
+See DEPLOYMENT-STATUS.txt for test scope and observed timings. Configure the
+four actual endpoint IDs through backend environment variables; none are
+hardcoded in this handoff. Route each variant to its matching endpoint.
 
-An API key was shared during a previous test. Treat it as exposed and rotate
-it. No key is included in this document. Require a current secret via backend
-environment variables or a secret manager; never put it in Git or frontend JS.
+Require a current RunPod secret via backend environment variables or a secret
+manager; never put it in Git or frontend JavaScript.
 
 3. MODEL AND GPU CONFIGURATION
 
@@ -140,6 +140,14 @@ Handle 429 and transient 5xx on safe status reads with bounded retry/backoff.
 Use a backend background worker/durable job runner for polling and result
 storage; do not rely on a browser tab remaining open or a long serverless web
 request. Cold starts are normal: show queued/starting/generating states.
+Observed on 2026-10-02 with model-containing private Docker Hub images:
+Qwen Q4 first-job queue/startup delay about 213 seconds; Qwen Q8 about 520
+seconds. These are individual measurements, not guarantees. An uncached image
+pull and extraction can take several minutes. Do not present queued time as
+model generation time or keep the browser's original HTTP request open.
+Warm Q4 generation at 512x512, 25 steps took about 9 seconds in that test;
+Q8 generation took about 11.6 seconds after its first startup. Larger images,
+different GPUs, workflows and prompts can change these timings.
 The current worker does not provide percentage/step progress via /status.
 Do not invent progress percentages or treat /stream as automatically supported.
 
@@ -238,8 +246,10 @@ This worker uses the 5.x output format:
 MiniMax SaveVideo outputs were seen under ComfyUI's 'images' history key with
 an .mp4 filename. With the current base worker, expect MP4 bytes in output.images
 Base64 entries too. Do not assume every output.images entry is a PNG. This is
-verified locally at the ComfyUI history level; cloud MP4 handling still needs
-an end-to-end test. Decode according to filename and inspect the actual media.
+verified in the cloud for MiniMax INT8 on 2026-10-02: the API returned Base64
+MP4 bytes with decodable H.264 video and AAC audio. BF16 T2V passed the same
+transport/decoding checks on an H200 SXM. Decode according to filename and
+inspect the actual media.
 
 On completion: inspect output.error/output.errors as well as top-level status;
 COMPLETED alone doesn't guarantee a usable asset. Decode each returned Base64
@@ -287,7 +297,7 @@ filenames or URLs; the backend chooses trusted templates and allowed fields.
 MVP: Qwen Q4 text-to-image, prompt editor, generate, queued/generating states,
 image preview/download, seed reuse, persistent history, friendly failures/cancel.
 Use the confirmed endpoint first. Add Q8 only after deployment verification.
-Add MiniMax INT8 T2V/I2V after cloud build and MP4 transport tests. Show a video
+Add MiniMax INT8 T2V/I2V using the cloud-tested templates. Show a video
 player with audio and downloads. Keep BF16 unavailable until its registry image deploys and a cloud test passes.
 Avoid displaying Docker/node identifiers in the normal generation form.
 An admin page can show endpoint readiness, model variant and troubleshooting.
@@ -348,8 +358,10 @@ client-examples API templates before coding; preserve their node connections.
 Start with Qwen Q4, using a backend-held RunPod key and asynchronous durable job
 processing. Implement authenticated generation/history, validated settings,
 reference-upload infrastructure, persistent media storage, status/error/cancel
-handling and a server-side model registry. Keep untested variants disabled.
+handling and a server-side model registry. Keep untested workflows/features disabled.
 Choose a suitable stack, document environment variables and startup/deployment
 instructions, and verify the acceptance checks. Do not expose secrets, accept
-arbitrary client workflows, assume BF16 inference has passed cloud validation, or claim untested video features work. Ask for missing account/storage
+arbitrary client workflows, or claim untested video features work. BF16 cloud
+T2V passed a short smoke test; separately verify BF16 I2V and larger production
+video settings before enabling those. Ask for missing account/storage
 configuration through appropriate secret setup, not by putting keys in code.
