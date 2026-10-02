@@ -8,8 +8,8 @@ No network volume is required. No model downloads at worker startup.
 Workflow JSON stays in client-examples/Qwen-2.1-Q8; send input.workflow via API.
 
 Build and push:
-  docker build --platform linux/amd64 -f Qwen-2.1-Q8/Dockerfile -t docker.io/<dockerhub-user>/qwen-2.1-q8:<version> .
-  docker push docker.io/<dockerhub-user>/qwen-2.1-q8:<version>
+  docker build --platform linux/amd64 -f Qwen-2.1-Q8/Dockerfile -t docker.io/guanchuan93/runpod-comfyui:qwen-2.1-q8-<version> .
+  docker push docker.io/guanchuan93/runpod-comfyui:qwen-2.1-q8-<version>
 Use an immutable version tag or digest when deploying the image to RunPod.
 Select Deploy from a Docker image and use the registry image address.
 For a private image, configure registry pull credentials in RunPod.

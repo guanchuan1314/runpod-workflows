@@ -8,8 +8,8 @@ No network volume is required. No model downloads at worker startup.
 Workflow JSON stays in client-examples/Minimax-H3-INT8; send input.workflow via API.
 
 Build and push:
-  docker build --platform linux/amd64 -f Minimax-H3-INT8/Dockerfile -t docker.io/<dockerhub-user>/minimax-h3-int8:<version> .
-  docker push docker.io/<dockerhub-user>/minimax-h3-int8:<version>
+  docker build --platform linux/amd64 -f Minimax-H3-INT8/Dockerfile -t docker.io/guanchuan93/runpod-comfyui:minimax-h3-int8-<version> .
+  docker push docker.io/guanchuan93/runpod-comfyui:minimax-h3-int8-<version>
 Use an immutable version tag or digest when deploying the image to RunPod.
 Select Deploy from a Docker image and use the registry image address.
 For a private image, configure registry pull credentials in RunPod.

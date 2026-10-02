@@ -3,7 +3,10 @@ DOCKER HUB DEPLOYMENT - FOUR MODEL VARIANTS
 Each Dockerfile downloads and checksum-verifies its model manifest during build.
 Images contain ComfyUI, model weights, custom nodes when required and the RunPod
 handler. Models live under /comfyui/models; no network volume is needed.
-One Docker Hub image and one Queue endpoint per variant. Workflow API is unchanged.
+Four images stored as distinct tags in one private Docker Hub repository:
+  guanchuan93/runpod-comfyui
+This uses one private-repository slot. RunPod endpoint names stay unchanged.
+One image tag and one Queue endpoint per variant. Workflow API is unchanged.
 
 Variant             Model weights    Worker container disk    Builder free disk
 Qwen-2.1-Q4         14.63GB          50GB                     100GB
@@ -17,18 +20,19 @@ unused build cache only after confirming it is no longer needed.
 BUILD
 Use a Docker-enabled linux/amd64 builder with adequate disk and runtime.
 Build context is repository root. Substitute your Docker Hub username and tag:
-  docker build --platform linux/amd64 -f Qwen-2.1-Q4/Dockerfile -t docker.io/<dockerhub-user>/qwen-2.1-q4:<version> .
-  docker push docker.io/<dockerhub-user>/qwen-2.1-q4:<version>
+  docker build --platform linux/amd64 -f Qwen-2.1-Q4/Dockerfile -t docker.io/guanchuan93/runpod-comfyui:qwen-2.1-q4-<version> .
+  docker push docker.io/guanchuan93/runpod-comfyui:qwen-2.1-q4-<version>
 Windows builder helper (requires Docker installed and already signed in):
   .\Build-And-Push.ps1 -DockerHubUsername <dockerhub-user> -Version <version>
 Use -Variants to build a subset. The helper stops on a failed build/push.
-Repeat with each matching Dockerfile and lowercase image name. Authenticate to
+Repeat with each matching Dockerfile and its lowercase variant-prefixed tag. Authenticate to
 Docker Hub via its standard login flow; never commit tokens or passwords.
 Do not use standard small-disk hosted CI for large MiniMax images without first
 checking available disk. Earlier RunPod GitHub builds hit size/time limits;
 Docker Hub stores completed images but does not build them or remove RunPod limits.
 A sufficiently provisioned temporary builder or suitable build service is needed.
-Choose repository visibility deliberately; private images need RunPod pull credentials.
+The repository must be private before uploading. Configure Docker Hub pull
+credentials in RunPod and attach them to every worker template.
 
 RUNPOD
 Deploy from a Docker image using an immutable tag or digest. Use the folder name
