@@ -1,0 +1,356 @@
+AI IMAGE AND VIDEO WEBSITE — DEVELOPER HANDOFF
+Prepared 2026-10-02. Read this together with the repository's client-examples.
+
+1. OBJECTIVE
+
+Build a web app that generates images and videos using our custom ComfyUI
+models on RunPod Serverless Queue endpoints. The user enters a prompt, selects
+a model/precision and supported settings, submits a job, sees its status, and
+views/downloads the resulting image or MP4. Support a reference-image upload
+for MiniMax image-to-video. Preserve generated assets in our own storage.
+
+Use one endpoint per deployed model/precision. The backend chooses the correct
+endpoint ID. The browser must never receive the RunPod API key. No website
+framework has been selected; choose a suitable stack and explain the choice.
+Do not assume endpoint creation or account provisioning is part of the website.
+
+2. REPOSITORY AND DEPLOYMENT STATUS
+
+
+Folders:
+  Qwen-2.1-Q4/         Worker build: unrestricted Q4 GGUF diffusion model.
+  Qwen-2.1-Q8/         Worker build: unrestricted Q8 GGUF diffusion model.
+  Minimax-H3-INT8/     Worker build: INT8 generator + INT8 Heretic encoder.
+  Minimax-H3-BF16/     BF16 generator + BF16 Heretic encoder build description.
+  client-examples/    Workflow/request examples, kept outside worker folders.
+
+Each worker folder has Dockerfile, download_models.py, memory.txt and README.
+MiniMax also has models.json: this is a required BUILD manifest, not an
+inference workflow. Separate volume installer checks file hashes. Workflows are not baked
+into the worker; the backend sends the complete API graph with each request.
+Dockerfile COPY paths expect the repository root as Docker build context.
+Example Dockerfile Path: Qwen-2.1-Q8/Dockerfile.
+
+The Qwen Q4 configuration passed a live endpoint test.
+Q4 generated a PNG successfully using /run and /status. A Q8 request to that
+same endpoint failed because only Q4 was installed. Do not map Q8 to this ID
+unless its container is actually updated and tested. Other endpoint IDs are
+not configured here. Q8 and MiniMax cloud generation remain untested.
+MiniMax INT8 T2V/I2V examples worked locally in ComfyUI, not yet on RunPod.
+BF16 variants have not been generation-tested locally or in the cloud.
+
+An API key was shared during a previous test. Treat it as exposed and rotate
+it. No key is included in this document. Require a current secret via backend
+environment variables or a secret manager; never put it in Git or frontend JS.
+
+3. MODEL AND GPU CONFIGURATION
+
+Model option          Recommended GPU tier    Approximate model download
+Qwen-2.1-Q4           48GB (24GB candidate)   14.6GB
+Qwen-2.1-Q8           48GB                   17.6GB
+Minimax-H3-INT8       96GB (80GB candidate)   55.1GB
+Minimax-H3-BF16       141GB                  99.5GB
+
+These are estimates, not measured cloud minimums. VRAM is not disk space.
+Resolution, frame count, batch size and offloading change memory requirements.
+GPU PRO labels affect hardware throughput; selecting PRO doesn't change model
+precision. Quantization choices require different installed model files.
+
+Qwen: qwen-image-2.1-UC-Q4_K_M.gguf or qwen-image-2.1-UC-Q8_0.gguf;
+both use qwen3vl_8b_int8_convrot.safetensors and the BF16 Qwen 2.1 VAE.
+MiniMax INT8: minimax_h3_fl2va_pruned_int8_convrot.safetensors plus
+qwen3vl_32b_h3_ultra_uncensored_heretic_int8_convrot.safetensors.
+MiniMax BF16: minimax_h3_fl2va_pruned_bf16.safetensors plus
+qwen3vl_32b_h3_ultra_uncensored_heretic_bf16.safetensors.
+MiniMax VAEs: video FP16 and audio FP32. Optional Turbo LoRA is installed by
+the build, but the provided API examples do not activate it. Do not expose
+an 8-step Turbo toggle until its graph and outputs are separately verified.
+BF16 means 16-bit; the requested spelling BF6 was interpreted as BF16.
+Unrestricted/Heretic describes publisher claims, not an output guarantee.
+
+Deploy as Queue; active workers 0; max workers 1 initially; one GPU per worker;
+idle timeout 5 seconds; FlashBoot enabled if available. Starting execution
+timeouts: Qwen 600 seconds, MiniMax 1800 seconds. These settings can be changed
+after benchmarking. Cold starts/model loading are billed, as is execution and
+the idle timeout; persistent storage may cost money even with workers stopped.
+
+MODEL STORAGE: All four variants now load models from network volumes only.
+No model downloads happen during image builds or worker startup. Populate the
+volume once using volume-tools/install_models.py and models.json manifests.
+Setup Pods mount it at /workspace; Serverless mounts it at /runpod-volume.
+Text encoders use models/clip, diffusion models models/unet, plus models/vae
+and models/loras. Worker startup checks installed model files before launch.
+Models are outside the image, so BF16 weights no longer hit the GitHub image
+size limit. BF16 cloud generation still needs validation. Volume storage costs
+continue when workers stop. Volume location restricts GPU availability.
+See NETWORK-VOLUME-SETUP.txt for setup, sizing and costs.
+
+4. WEBSITE ARCHITECTURE
+
+Browser -> our authenticated backend -> RunPod Queue API -> ComfyUI worker.
+Backend -> database for jobs/settings -> object storage for final media.
+Browser polls our backend; it doesn't call RunPod directly.
+
+Create a server-side model registry mapping a stable option ID to:
+  endpoint environment variable, enabled flag, template path, task support,
+  default parameters, tested bounds, output type and expected model filenames.
+Enable only endpoint/template combinations verified to work. Show unavailable
+options as disabled with a useful explanation, rather than silently substituting
+another precision. GPU choice is an endpoint configuration, not a per-request
+parameter. A separately deployed endpoint may use another GPU tier.
+
+Suggested server environment variables:
+  RUNPOD_API_KEY
+  RUNPOD_QWEN_Q4_ENDPOINT_ID=<configure after deployment>
+  RUNPOD_QWEN_Q8_ENDPOINT_ID=<configure after deployment>
+  RUNPOD_MINIMAX_INT8_ENDPOINT_ID=<configure after deployment>
+  RUNPOD_MINIMAX_BF16_ENDPOINT_ID=<configure after storage solution>
+  DATABASE_URL
+  Object storage configuration appropriate to the chosen provider.
+
+5. RUNPOD API CONTRACT
+
+Base URL: https://api.runpod.ai/v2/{endpointId}
+Authorization: Bearer {RUNPOD_API_KEY}
+Content-Type: application/json
+
+Submit asynchronously:
+  POST /run
+  {"input":{"workflow": COMPLETE_COMFYUI_API_GRAPH}}
+
+The COMPLETE_COMFYUI_API_GRAPH is a JSON object containing node IDs as keys,
+class_type and inputs. Load it from the trusted API template file, clone it,
+then edit allowed parameter fields. It is not a visual editor workflow export
+and it is not a filename/path. Never send only {"input":{"prompt":"..."}}:
+that is RunPod's generic example and this ComfyUI handler requires workflow.
+
+Successful submission includes {"id":"...","status":"IN_QUEUE"}.
+Save the job ID immediately. Poll GET /status/{jobId} with authorization.
+Supported status handling: IN_QUEUE, IN_PROGRESS, COMPLETED, FAILED,
+CANCELLED and TIMED_OUT. Handle unknown statuses defensively.
+POST /cancel/{jobId} requests cancellation; confirm the resulting state.
+GET /health reports worker/job statistics, useful for admin diagnostics.
+An HTTP timeout after submission may leave a running cloud job. Do not blindly
+retry POST /run: duplicate submissions can generate duplicate costs. Use a
+database-backed app request ID and persist job IDs whenever available. If a
+submission outcome is unknown, mark it uncertain and reconcile rather than
+claiming exactly-once behavior that this client has not established.
+
+Start polling every 3–5 seconds, increasing interval during long queues.
+Handle 429 and transient 5xx on safe status reads with bounded retry/backoff.
+Use a backend background worker/durable job runner for polling and result
+storage; do not rely on a browser tab remaining open or a long serverless web
+request. Cold starts are normal: show queued/starting/generating states.
+The current worker does not provide percentage/step progress via /status.
+Do not invent progress percentages or treat /stream as automatically supported.
+
+Optional top-level policy fields executionTimeout and ttl use MILLISECONDS,
+unlike endpoint console timeout values typically shown in seconds. Bound them
+server-side. ttl includes queue time. /run results are retained for 30 minutes
+after completion according to the checked docs; copy outputs promptly into
+our own storage. A timeout or 404 requires a clear recoverable error state.
+
+6. QWEN TEMPLATE AND PARAMETER MAPPING
+
+Templates:
+  client-examples/Qwen-2.1-Q4/workflow-api.json
+  client-examples/Qwen-2.1-Q8/workflow-api.json
+  request.json beside each is a complete request body with input.workflow.
+  workflow-ui.json is a visual editor export, not executable API input.
+
+Node 452, inputs.prompt: user prompt.
+Node 452, inputs.negative_prompt: negative prompt, default empty.
+Node 452, inputs.resolution: text conditioning resolution, default 1024.
+Node 456, inputs.width/height/batch_size: latent dimensions and count.
+Node 458, inputs.seed/steps/cfg/sampler_name/scheduler/denoise.
+Node 451, inputs.unet_name: selected installed Q4 or Q8 model; fixed by registry.
+
+Defaults: 1024x1024, batch 1, steps 25, cfg 1, euler/simple, denoise 1.
+Use a new valid integer seed when Random is chosen; save the resolved seed.
+Do not change all parameters blindly. Dimension/conditioning relationships and
+supported ranges require testing. MVP should preserve tested defaults, expose
+prompt/seed and only a small benchmarked set of presets. Avoid unbounded steps
+or batches that could create expensive jobs (a previous 735-step run was slow).
+Natural portrait style can be an optional reusable prompt suffix, separate from
+the user's editable scene. Precision alone does not guarantee realistic skin.
+
+Qwen image-to-image is a future addition: local workflows exist elsewhere, but
+this cloud client-examples folder currently contains ONLY Qwen text-to-image.
+Do not label image-to-image functional until its API template is exported,
+reference-image inputs implemented and an endpoint run passes.
+
+Illustrative server-side TypeScript flow (not a complete app):
+
+  const graph = structuredClone(trustedQwenTemplate);
+  graph['452'].inputs.prompt = validated.prompt;
+  graph['458'].inputs.seed = resolvedSeed;
+  const response = await fetch(`https://api.runpod.ai/v2/${endpointId}/run`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RUNPOD_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ input: { workflow: graph } })
+  });
+  // Check response.ok; persist returned job ID; schedule background polling.
+
+7. MINIMAX TEMPLATE AND PARAMETER MAPPING
+
+Templates under client-examples/Minimax-H3-INT8/ and Minimax-H3-BF16/:
+  t2v-api.json and t2v-request.json: text-to-video.
+  i2v-api.json and i2v-request.json: image-to-video.
+  MiniMax-H3-Heretic-*.json: full UI layouts, including optional Turbo controls.
+The minimal API graphs are the locally tested baseline, not direct exports
+of every branch in the larger original UI layout.
+
+Node 131 inputs.prompt/width/height/length: prompt, resolution and frame count.
+Defaults: width 640, height 384, length 56. Length is FRAMES, not seconds.
+Node 130 inputs.fps: default 24. Nominal duration is frames/fps (~2.33 seconds).
+Valid frame counts and dimensions must follow the installed ComfyUI model's
+constraints; preserve the tested values until new presets are verified.
+Node 124 inputs.steps: default 20, simple scheduler.
+Node 129 inputs.noise_seed: seed.
+Node 127 inputs.unet_name: diffusion filename, fixed by variant.
+Node 128 inputs.clip_name: matching Heretic encoder filename.
+Node 92 SaveVideo: final MP4 output. Video graph includes audio VAE/decode.
+Audio descriptions can be included in the prompt, but do not promise exact
+speech, voice identity or uploaded voice control from this graph.
+
+For image-to-video, node 114 LoadImage inputs.image must match the submitted
+input image name; node 131 inputs.first_frame links to node 114.
+Extend the request body:
+  {"input":{
+    "workflow": COMPLETE_I2V_API_GRAPH,
+    "images":[{"name":"reference.png","image":"BASE64_IMAGE_BYTES"}]
+  }}
+Set graph['114'].inputs.image to 'reference.png'. Use a generated safe filename
+matching its actual image format. The name is not an arbitrary local PC path.
+Validate actual upload type, size and dimensions; Base64 increases payload size.
+Check current RunPod request limits before choosing upload limits. Large video
+inputs/movie editing are not supported by these baseline workflows.
+
+8. OUTPUT CONTRACT AND MEDIA STORAGE
+
+This worker uses the 5.x output format:
+  {"status":"COMPLETED","output":{"images":[
+    {"filename":"Qwen_00001_.png","type":"base64","data":"..."}
+  ]}}
+
+MiniMax SaveVideo outputs were seen under ComfyUI's 'images' history key with
+an .mp4 filename. With the current base worker, expect MP4 bytes in output.images
+Base64 entries too. Do not assume every output.images entry is a PNG. This is
+verified locally at the ComfyUI history level; cloud MP4 handling still needs
+an end-to-end test. Decode according to filename and inspect the actual media.
+
+On completion: inspect output.error/output.errors as well as top-level status;
+COMPLETED alone doesn't guarantee a usable asset. Decode each returned Base64
+asset, verify it, store it under an app-controlled unique key, and return a
+stable authorized URL to the browser. Store all output entries, not only first.
+Do not trust remote filenames as filesystem paths. Never render remote strings
+as HTML. Keep secrets and large Base64 media out of application logs.
+
+type 's3_url' may appear if worker storage upload is configured. S3 is currently
+not configured/tested. The base worker's image upload helper must be verified
+or replaced for MP4 handling. Production video should upload from worker to
+object storage and return URLs rather than large Base64 payloads; this requires
+a worker change and separate validation. Merely adding s3Config to a request
+does not make a handler implement uploads. Until resolved, limit short video
+presets and verify response size before enabling video publicly.
+
+9. PROPOSED WEBSITE BACKEND CONTRACT (OUR APP, NOT RUNPOD)
+
+POST /api/generations
+  Accept authenticated user, modelId, task, prompt, optional negativePrompt,
+  seed/random choice, validated preset and owned referenceUploadId for I2V.
+  Resolve endpoint/template; insert allowed fields; create database job;
+  submit once; respond 202 with our generation ID and queued state.
+GET /api/generations/{id}
+  Authorize owner. Return app status, settings, timestamps, safe error and
+  media URLs when stored. Do not expose API keys or arbitrary endpoint IDs.
+POST /api/generations/{id}/cancel
+  Authorize owner, request RunPod cancellation, update status after confirmation.
+GET /api/generations
+  Paginated history belonging to the user.
+Upload route/provider flow
+  Store reference image, validate it, associate it with the user, return ID.
+
+Suggested job record: app ID, user ID, request ID, modelId, task, templateVersion,
+endpointId, RunPod job ID, status, prompt/settings/resolved seed, upload ID,
+created/started/completed times, sanitized error, output asset metadata,
+delayTime/executionTime when provided. Keep RunPod timing units explicit.
+Persist jobs across backend restarts. Endpoint polling must not depend on the
+user's tab. Limit per-user requests and simultaneous submissions to control cost.
+The client supplies structured settings, not arbitrary workflow graphs, model
+filenames or URLs; the backend chooses trusted templates and allowed fields.
+
+10. USER EXPERIENCE AND IMPLEMENTATION PHASES
+
+MVP: Qwen Q4 text-to-image, prompt editor, generate, queued/generating states,
+image preview/download, seed reuse, persistent history, friendly failures/cancel.
+Use the confirmed endpoint first. Add Q8 only after deployment verification.
+Add MiniMax INT8 T2V/I2V after cloud build and MP4 transport tests. Show a video
+player with audio and downloads. Keep BF16 unavailable until its volume is populated and a cloud test passes.
+Avoid displaying Docker/node identifiers in the normal generation form.
+An admin page can show endpoint readiness, model variant and troubleshooting.
+
+Acceptance checks:
+  - Q4 submit -> job ID -> output saved -> preview/download survives page reload.
+  - API key absent from frontend bundle, browser requests and logs.
+  - User cannot fetch/cancel another user's job or use another user's upload.
+  - Queue/cold start shown accurately; no invented generation progress.
+  - Incorrect model/endpoint pairing disabled or reported clearly.
+  - Duplicate click/network retry doesn't silently create duplicate jobs.
+  - Failed job, worker output error, cancellation and expired result handled.
+  - Reference upload reaches LoadImage with exactly matching filename.
+  - MiniMax MP4 and audio play correctly after storage, when enabled.
+  - Unavailable cloud variants are not presented as tested functionality.
+
+11. CURRENT LIMITATIONS AND DEPLOYMENT TROUBLESHOOTING
+
+Base image is verified 5.10.0-base, pinned by digest. 5.11.0 existed as a GitHub
+release but its Docker Hub base tag was absent during our test; don't select
+container tags solely from GitHub releases. ComfyUI core is pinned to v0.38.0.
+The Qwen GGUF custom node follows leejet upstream main, not an immutable commit;
+pin a verified commit when reproducible production builds are required.
+No local Docker build test was possible on this PC; Docker is not installed.
+RunPod's repository scan warning about missing runpod.serverless.start() can
+occur because the handler is inherited from the base image. Do not override
+the container command just to hide the warning; verify startup logs instead.
+Earlier RunPod builds targeted the production branch; verify branch/release
+configuration when pushing renamed Dockerfile paths. Existing endpoint settings
+won't automatically change to match the new folder names.
+
+Review model licenses before launching a commercial website. Qwen is labeled
+qwen-research; MiniMax has its community license, and Heretic encoder has a
+separate license. The existence of unrestricted weights doesn't grant blanket
+commercial rights. Confirm the intended deployment's license terms directly.
+
+12. REFERENCES
+
+RunPod async jobs, status, cancellation, policies and retention:
+https://docs.runpod.io/serverless/endpoints/send-requests
+Endpoint settings and worker scaling:
+https://docs.runpod.io/serverless/endpoints/endpoint-configurations
+GitHub builds, image and build-time limits:
+https://docs.runpod.io/serverless/workers/github-integration
+ComfyUI worker input/output schema:
+https://github.com/runpod-workers/worker-comfyui
+Qwen unrestricted files:
+https://huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-GGUF
+MiniMax model files:
+https://huggingface.co/Comfy-Org/MiniMax-H3
+Heretic encoder variants:
+https://huggingface.co/ethanfel/Qwen3-VL-32B-Ultra-Heretic-H3-ComfyUI-INT8-ConvRot
+
+13. PROMPT TO GIVE THE IMPLEMENTING LLM
+
+Build the website described in WEBSITE-DEVELOPER-HANDOFF.txt. Inspect the actual
+client-examples API templates before coding; preserve their node connections.
+Start with Qwen Q4, using a backend-held RunPod key and asynchronous durable job
+processing. Implement authenticated generation/history, validated settings,
+reference-upload infrastructure, persistent media storage, status/error/cancel
+handling and a server-side model registry. Keep untested variants disabled.
+Choose a suitable stack, document environment variables and startup/deployment
+instructions, and verify the acceptance checks. Do not expose secrets, accept
+arbitrary client workflows, assume BF16 inference has passed cloud validation, or claim untested video features work. Ask for missing account/storage
+configuration through appropriate secret setup, not by putting keys in code.

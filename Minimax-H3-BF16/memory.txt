@@ -2,9 +2,11 @@ Minimax-H3-BF16
 Recommended GPU memory: 141GB
 141GB recommended; 180GB for extra headroom.
 Approximate model download: 99.5GB
-Suggested container disk: 150GB
+Suggested worker container disk: 30GB starting allocation (runtime/temp files).
 
 Planning estimates, not measured cloud minimums. GPU VRAM is different from
 system RAM and disk storage. Qwen: 1024 square, batch 1. MiniMax: short clips.
 Resolution, frame count and batch size affect memory. Offloading requires
 host RAM and can reduce speed. One GPU per worker; active 0; max workers 1.
+
+Models live on network storage, not container disk. See NETWORK-VOLUME-SETUP.txt.
